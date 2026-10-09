@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1F6B7A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>신혼부부 가계부</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: #f4f7f7; color: #222;
+  }
+  .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: #fff;
+         box-shadow: 0 0 12px rgba(0,0,0,.06); padding-bottom: 90px; }
+  header {
+    background: #1F6B7A; color: #fff; text-align: center;
+    padding: 18px 16px 14px; position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { margin: 0; font-size: 19px; }
+  header p { margin: 4px 0 0; font-size: 12px; opacity: .85; }
+  .month-nav {
+    display: flex; align-items: center; justify-content: center; gap: 18px;
+    padding: 14px; background: #fff; border-bottom: 1px solid #eee;
+    position: sticky; top: 76px; z-index: 9;
+  }
+  .month-nav button {
+    border: 1px solid #ddd; background: #fff; border-radius: 50%;
+    width: 34px; height: 34px; font-size: 16px; cursor: pointer; color: #1F6B7A;
+  }
+  .month-nav .cur { font-size: 17px; font-weight: bold; min-width: 130px; text-align: center; }
+  .summary { display: flex; gap: 8px; padding: 14px 14px 4px; }
+  .card {
+    flex: 1; background: #f2fafb; border-radius: 12px; padding: 12px 8px;
+    text-align: center;
+  }
+  .card .label { font-size: 12px; color: #666; }
+  .card .value { font-size: 17px; font-weight: bold; margin-top: 4px; }
+  .card.expense .value { color: #c0392b; }
+  .card.income .value { color: #1F6B7A; }
+  .tabs {
+    display: flex; margin: 14px 14px 0; background: #eef3f3; border-radius: 12px; padding: 4px;
+    position: sticky; top: 140px; z-index: 8;
+  }
+  .tabs button {
+    flex: 1; border: none; background: transparent; padding: 11px 0;
+    font-size: 15px; border-radius: 9px; cursor: pointer; color: #666; font-weight: bold;
+  }
+  .tabs button.active { background: #fff; color: #1F6B7A; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+  .panel { display: none; padding: 16px 14px; }
+  .panel.active { display: block; }
+  .type-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+  .type-toggle button {
+    flex: 1; padding: 13px; font-size: 16px; font-weight: bold; cursor: pointer;
+    border: 2px solid #ddd; background: #fff; border-radius: 12px; color: #888;
+  }
+  .type-toggle button.on-expense { border-color: #c0392b; color: #c0392b; background: #fdf0ef; }
+  .type-toggle button.on-income { border-color: #1F6B7A; color: #1F6B7A; background: #eef7f8; }
+  .amount-wrap { margin-bottom: 12px; }
+  .amount-wrap input {
+    width: 100%; font-size: 26px; font-weight: bold; text-align: right;
+    padding: 14px; border: 2px solid #ddd; border-radius: 12px;
+  }
+  .amount-wrap input:focus { outline: none; border-color: #1F6B7A; }
+  .cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .cat-grid button {
+    padding: 13px 4px; font-size: 14px; border: 2px solid #e3e3e3; background: #fff;
+    border-radius: 12px; cursor: pointer;
+  }
+  .cat-grid button.sel { border-color: #1F6B7A; background: #eef7f8; font-weight: bold; color: #1F6B7A; }
+  .row2 { display: flex; gap: 8px; margin-bottom: 14px; }
+  .row2 input {
+    flex: 1; padding: 12px; font-size: 15px; border: 2px solid #ddd; border-radius: 12px;
+  }
+  .save-btn {
+    width: 100%; padding: 16px; font-size: 17px; font-weight: bold; color: #fff;
+    background: #1F6B7A; border: none; border-radius: 14px; cursor: pointer;
+  }
+  .save-btn:active { opacity: .85; }
+  .bar-row { margin-bottom: 10px; }
+  .bar-top { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
+  .bar-top .pct { color: #888; }
+  .bar-bg { height: 12px; background: #eef1f1; border-radius: 6px; overflow: hidden; }
+  .bar-fill { height: 100%; background: #2A7F8F; border-radius: 6px; transition: width .4s; }
+  .insight {
+    background: #fdf6ec; border: 1px solid #e8d9b8; border-radius: 12px;
+    padding: 13px 14px; font-size: 14px; line-height: 1.65; margin-bottom: 10px;
+  }
+  .insight b { color: #7A4D20; }
+  .entry {
+    display: flex; align-items: center; padding: 12px 4px; border-bottom: 1px solid #f0f0f0;
+  }
+  .entry .cat {
+    background: #eef3f3; border-radius: 8px; padding: 6px 10px; font-size: 13px;
+    margin-right: 10px; white-space: nowrap;
+  }
+  .entry .info { flex: 1; }
+  .entry .memo { font-size: 14px; }
+  .entry .date { font-size: 12px; color: #999; }
+  .entry .amt { font-weight: bold; font-size: 15px; }
+  .entry .amt.out { color: #c0392b; }
+  .entry .amt.in { color: #1F6B7A; }
+  .entry .del { border: none; background: none; color: #bbb; font-size: 18px; cursor: pointer; padding: 6px; }
+  .empty { text-align: center; color: #aaa; padding: 34px 0; font-size: 14px; line-height: 1.7; }
+  .tools { margin-top: 22px; border-top: 1px solid #eee; padding-top: 14px; }
+  .tools h4 { margin: 0 0 10px; font-size: 14px; color: #888; }
+  .tools button {
+    width: 100%; padding: 12px; margin-bottom: 8px; font-size: 14px;
+    border: 1px solid #ddd; background: #fff; border-radius: 10px; cursor: pointer;
+  }
+  .tools button.danger { color: #c0392b; border-color: #eec5c0; }
+  .sec-title { font-size: 16px; font-weight: bold; margin: 4px 0 12px; color: #1F6B7A; }
+  #fileInput { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>신혼부부 가계부</h1>
+    <p>우리 둘의 돈 흐름을 한눈에</p>
+  </header>
+
+  <div class="month-nav">
+    <button id="prevM">◀</button>
+    <div class="cur" id="curMonth"></div>
+    <button id="nextM">▶</button>
+  </div>
+
+  <div class="summary">
+    <div class="card expense"><div class="label">이번 달 지출</div><div class="value" id="sumExp">0원</div></div>
+    <div class="card income"><div class="label">이번 달 수입</div><div class="value" id="sumInc">0원</div></div>
+    <div class="card"><div class="label">남은 돈</div><div class="value" id="sumBal">0원</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="active" data-tab="input">입력</button>
+    <button data-tab="analysis">분석</button>
+    <button data-tab="list">내역</button>
+  </div>
+
+  <!-- 입력 -->
+  <div class="panel active" id="panel-input">
+    <div class="type-toggle">
+      <button id="btnExp" class="on-expense">지출</button>
+      <button id="btnInc">수입</button>
+    </div>
+    <div class="amount-wrap">
+      <input type="number" id="amount" inputmode="numeric" placeholder="금액 입력 (원)" min="0">
+    </div>
+    <div class="cat-grid" id="catGrid"></div>
+    <div class="row2">
+      <input type="date" id="date">
+      <input type="text" id="memo" placeholder="메모 (선택)">
+    </div>
+    <button class="save-btn" id="saveBtn">저장하기</button>
+  </div>
+
+  <!-- 분석 -->
+  <div class="panel" id="panel-analysis">
+    <div class="sec-title">카테고리별 지출</div>
+    <div id="catBars"></div>
+    <div class="sec-title" style="margin-top:18px;">이번 달 소비 리포트</div>
+    <div id="insights"></div>
+  </div>
+
+  <!-- 내역 -->
+  <div class="panel" id="panel-list">
+    <div class="sec-title">입력 내역</div>
+    <div id="entryList"></div>
+    <div class="tools">
+      <h4>데이터 관리</h4>
+      <button id="exportBtn">데이터 내보내기 (백업·공유용)</button>
+      <button id="importBtn">데이터 가져오기</button>
+      <input type="file" id="fileInput" accept=".json,application/json">
+      <button class="danger" id="resetBtn">이번 달 데이터 모두 지우기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const LS_KEY = 'newlywed_budget_v1';
+const EXP_CATS = ['식비','외식·배달','주거비','교통','쇼핑','의료·건강','경조사','저축','기타'];
+const INC_CATS = ['월급','용돈','기타수입'];
+
+let state = { type: 'expense', cat: null, ym: currentYM() };
+
+function currentYM() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+function load() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+  catch (e) { return []; }
+}
+function saveAll(list) { localStorage.setItem(LS_KEY, JSON.stringify(list)); }
+function fmt(n) { return Number(n).toLocaleString('ko-KR') + '원'; }
+function ymLabel(ym) {
+  const [y, m] = ym.split('-');
+  return y + '년 ' + Number(m) + '월';
+}
+function shiftYM(ym, d) {
+  let [y, m] = ym.split('-').map(Number);
+  m += d;
+  if (m < 1) { m = 12; y--; }
+  if (m > 12) { m = 1; y++; }
+  return y + '-' + String(m).padStart(2, '0');
+}
+
+// ---- 카테고리 버튼 ----
+function renderCats() {
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = '';
+  const cats = state.type === 'expense' ? EXP_CATS : INC_CATS;
+  cats.forEach(c => {
+    const b = document.createElement('button');
+    b.textContent = c;
+    if (state.cat === c) b.classList.add('sel');
+    b.onclick = () => { state.cat = c; renderCats(); };
+    grid.appendChild(b);
+  });
+}
+
+// ---- 저장 ----
+document.getElementById('saveBtn').onclick = () => {
+  const amt = Number(document.getElementById('amount').value);
+  if (!amt || amt <= 0) { alert('금액을 입력해 주세요.'); return; }
+  if (!state.cat) { alert('카테고리를 선택해 주세요.'); return; }
+  const date = document.getElementById('date').value ||
+    new Date().toISOString().slice(0, 10);
+  const memo = document.getElementById('memo').value.trim();
+  const list = load();
+  list.push({ id: Date.now(), date, type: state.type, cat: state.cat, amount: amt, memo });
+  saveAll(list);
+  document.getElementById('amount').value = '';
+  document.getElementById('memo').value = '';
+  state.cat = null;
+  renderCats(); renderAll();
+  alert('저장됐어요!');
+};
+
+// ---- 월별 집계 ----
+function monthEntries() {
+  return load().filter(e => e.date.slice(0, 7) === state.ym)
+               .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+}
+
+function renderSummary() {
+  const es = monthEntries();
+  const exp = es.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+  const inc = es.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
+  document.getElementById('sumExp').textContent = fmt(exp);
+  document.getElementById('sumInc').textContent = fmt(inc);
+  document.getElementById('sumBal').textContent = fmt(inc - exp);
+  document.getElementById('curMonth').textContent = ymLabel(state.ym);
+}
+
+function renderAnalysis() {
+  const es = monthEntries().filter(e => e.type === 'expense');
+  const total = es.reduce((s, e) => s + e.amount, 0);
+  const byCat = {};
+  es.forEach(e => { byCat[e.cat] = (byCat[e.cat] || 0) + e.amount; });
+  const sorted = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+
+  const bars = document.getElementById('catBars');
+  const ins = document.getElementById('insights');
+  if (!total) {
+    bars.innerHTML = '<div class="empty">아직 입력된 지출이 없어요.<br>입력 탭에서 첫 지출을 기록해 보세요.</div>';
+    ins.innerHTML = '';
+    return;
+  }
+  bars.innerHTML = sorted.map(([cat, amt]) => {
+    const pct = Math.round(amt / total * 100);
+    return '<div class="bar-row"><div class="bar-top"><span>' + cat +
+      '</span><span class="pct">' + fmt(amt) + ' · ' + pct + '%</span></div>' +
+      '<div class="bar-bg"><div class="bar-fill" style="width:' + pct + '%"></div></div></div>';
+  }).join('');
+
+  const [y, m] = state.ym.split('-').map(Number);
+  const days = new Date(y, m, 0).getDate();
+  const daily = Math.round(total / days);
+  const top = sorted[0];
+  const topPct = Math.round(top[1] / total * 100);
+  let html = '';
+  html += '<div class="insight">이번 달 총 지출은 <b>' + fmt(total) + '</b>이에요. 하루 평균 <b>' + fmt(daily) + '</b>씩 쓰고 있어요.</div>';
+  html += '<div class="insight">가장 많이 쓴 곳은 <b>' + top[0] + '</b> (' + fmt(top[1]) + ', ' + topPct + '%)예요.' +
+    (topPct >= 40 ? ' 절반 가까이 차지하니 여기서 줄일 곳이 있는지 함께 이야기 나눠보세요.' : ' 골고루 쓰고 계시네요!') + '</div>';
+  if (sorted[1]) {
+    html += '<div class="insight">그 다음은 <b>' + sorted[1][0] + '</b> (' + fmt(sorted[1][1]) + ')이에요. 상위 2개 카테고리가 전체의 <b>' +
+      Math.round((top[1] + sorted[1][1]) / total * 100) + '%</b>를 차지해요.</div>';
+  }
+  ins.innerHTML = html;
+}
+
+function renderList() {
+  const es = monthEntries();
+  const box = document.getElementById('entryList');
+  if (!es.length) {
+    box.innerHTML = '<div class="empty">이번 달 내역이 없어요.</div>';
+    return;
+  }
+  box.innerHTML = '';
+  es.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = '<div class="cat">' + e.cat + '</div>' +
+      '<div class="info"><div class="memo">' + (e.memo || '(메모 없음)') + '</div>' +
+      '<div class="date">' + e.date + '</div></div>' +
+      '<div class="amt ' + (e.type === 'expense' ? 'out' : 'in') + '">' +
+      (e.type === 'expense' ? '-' : '+') + fmt(e.amount) + '</div>';
+    const del = document.createElement('button');
+    del.className = 'del'; del.textContent = '×';
+    del.onclick = () => {
+      if (!confirm('이 내역을 지울까요?')) return;
+      saveAll(load().filter(x => x.id !== e.id));
+      renderAll();
+    };
+    div.appendChild(del);
+    box.appendChild(div);
+  });
+}
+
+// ---- 내보내기 / 가져오기 ----
+document.getElementById('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(load(), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '신혼부부가계부_' + state.ym + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+document.getElementById('importBtn').onclick = () =>
+  document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange = (ev) => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const data = JSON.parse(r.result);
+      if (!Array.isArray(data)) throw 0;
+      const cur = load();
+      const ids = new Set(cur.map(e => e.id));
+      let added = 0;
+      data.forEach(e => {
+        if (e && e.date && e.amount && !ids.has(e.id)) { cur.push(e); added++; }
+      });
+      saveAll(cur); renderAll();
+      alert(added + '건을 가져왔어요.');
+    } catch (e) { alert('가져올 수 없는 파일이에요.'); }
+  };
+  r.readAsText(f);
+  ev.target.value = '';
+};
+document.getElementById('resetBtn').onclick = () => {
+  if (!confirm('이번 달 데이터를 모두 지울까요? 되돌릴 수 없어요.')) return;
+  saveAll(load().filter(e => e.date.slice(0, 7) !== state.ym));
+  renderAll();
+};
+
+// ---- 탭 / 월 이동 / 타입 ----
+document.querySelectorAll('.tabs button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('panel-' + b.dataset.tab).classList.add('active');
+    if (b.dataset.tab === 'analysis') renderAnalysis();
+    if (b.dataset.tab === 'list') renderList();
+  };
+});
+document.getElementById('prevM').onclick = () => { state.ym = shiftYM(state.ym, -1); renderAll(); };
+document.getElementById('nextM').onclick = () => { state.ym = shiftYM(state.ym, 1); renderAll(); };
+document.getElementById('btnExp').onclick = () => {
+  state.type = 'expense'; state.cat = null;
+  document.getElementById('btnExp').className = 'on-expense';
+  document.getElementById('btnInc').className = '';
+  renderCats();
+};
+document.getElementById('btnInc').onclick = () => {
+  state.type = 'income'; state.cat = null;
+  document.getElementById('btnInc').className = 'on-income';
+  document.getElementById('btnExp').className = '';
+  renderCats();
+};
+
+function renderAll() { renderSummary(); renderAnalysis(); renderList(); }
+
+document.getElementById('date').value = new Date().toISOString().slice(0, 10);
+renderCats();
+renderAll();
+</script>
+</body>
+</html>
